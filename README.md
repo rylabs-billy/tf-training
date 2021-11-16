@@ -386,7 +386,7 @@ terraform plan
 terraform apply
 ```
 ### Config Management
-You will notice the NodeBalancer is reporting that all nodes are **_down_**. Well, that's because we haven't installed and configured a web server on them yet. Let's change that! We'll define some commands to install and configure `nginx` on our Linodes, by using `provisioners`. These are used to execute commands either locally (`local-exec`), on the remote nodes (`remote-exec`), or to copy files to the remote nodes (`file`). We could define these provisioners within the `` resource, but for this example we'll put them in a `null_resource` at then end of our `main.tf` file. A `null_resource` allows us to configure connection details and provisioners, and run those provisioners without being directly associated with another resource.
+You will notice the NodeBalancer is reporting that all nodes are **_down_**. Well, that's because we haven't installed and configured a web server on them yet. Let's change that! We'll define some commands to install and configure `nginx` on our Linodes, by using `provisioners`. These are used to execute commands either locally (`local-exec`), on the remote nodes (`remote-exec`), or to copy files to the remote nodes (`file`). We could define these provisioners within the `resource`, but for this example we'll put them in a `null_resource` at then end of our `main.tf` file. A `null_resource` allows us to configure connection details and provisioners, and run those provisioners without being directly associated with another resource.
 
 > Note: Terraform documentation states that [Provisioners are a Last Resort](https://www.terraform.io/docs/language/resources/provisioners/syntax.html), and they recommend [cloud-init](https://learn.hashicorp.com/tutorials/terraform/cloud-init?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) or [packer](https://learn.hashicorp.com/tutorials/terraform/packer?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) for configuration management.
 ```
@@ -548,6 +548,35 @@ terraform apply
 ```
 
 # Terraform Modules
-By now you'll notice that the `main.tf` file is starting to get long. It will start to become strenuous and increasingly less manageable the more we add to it from here. This is where **modules** come to the rescue! We can modularize all of this into more digestible, bite size chunks that are simple to manage. You might not see the night and day difference in this example, but as your infrastructure grows and becomes more complex, you most certainly will! We will pick that up in part 2 of this lesson.
+By now you'll notice that the `main.tf` file is starting to get long. It will start to become strenuous and increasingly less manageable the more we add to it from here. This is where **modules** come to the rescue! We can modularize all of this into more digestible, bite size chunks that are simple to manage and **reusable**. You might not see the night and day difference in this example, but as your infrastructure grows and becomes more complex, you most certainly will! 
+
+Up this point we've been working from the `terraform_project` directory. From here forward we'll be working in the `terraform_modules_project` directory instead. Navigate there and analyize the files. You should see a directory tree structure like the example below.
+
+```
+terraform_modules_project/
+├── ansible
+├── main.tf
+├── modules
+│   ├── firewall
+│   ├── linodes
+│   ├── lke
+│   ├── nodebalancer
+│   └── provisioners
+├── nginx
+├── providers.tf
+├── terraform.tfvars
+└── variables.tf
+```
+
+> Note: The `ansible` and `nginx` directories can be ignored for now, as they just contain the files we'll use later for the `null_resource` provisioners.
+
+This is a basic strcuture of a modularized Terrform project. Just like before, we have `variables.tf`, `terraform.tfvars`, `provider.tf` and `main.tf` files. You can see the `modules` directory contains subdirectories for the individual (and reusable) modules. The `main.tf` seen here will serve as the root module for our project. This is where we'll call individual modules from the `modules` directory.
+```
+# terraform_modules_project/main.tf
+
+provider "linode" {
+    token = var.api_token
+}
+```
 
 
