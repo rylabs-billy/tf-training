@@ -571,7 +571,7 @@ terraform_modules_project/
 
 > Note: The `ansible` and `nginx` directories can be ignored for now, as they just contain the files we'll use later for the `null_resource` provisioners.
 
-This is a basic structure of a modularized Terraform project. Just like before, we have `variables.tf`, `terraform.tfvars`, `provider.tf` and `main.tf` files. You can see the `modules` directory contains subdirectories for the individual (and reusable) modules. The `main.tf` seen here will serve as the root module for our project. This is where we'll call individual modules from the `modules` directory.
+This is a basic structure of a modularized Terraform project. Just like before, we have `variables.tf`, `terraform.tfvars`, `provider.tf` and `main.tf` files. You can see the `modules` directory contains subdirectories for the individual (and reusable) modules. The `main.tf` seen here will serve as the **root module** for our project. This is where we'll call individual modules from the `modules` directory.
 ```
 # terraform_modules_project/main.tf
 
@@ -580,29 +580,29 @@ provider "linode" {
 }
 ```
 
-Each module in the `modules` directory will also need its own `main.tf`, `variables.tf`, and `provider.tf` files. We also need an `outputs.tf` for **just** the `linodes` module.
+Each module in the `modules` directory will also need its own `main.tf`, `variables.tf`, and `providers.tf` files. We also need an `outputs.tf` for **just** the `linodes` module.
 ```
 terraform_modules_project/modules/
 ├── firewall
 │   ├── main.tf
-│   ├── provider.tf
+│   ├── providers.tf
 │   └── variables.tf
 ├── linodes
 │   ├── main.tf
-│   ├── provider.tf
+│   ├── providers.tf
 │   └── variables.tf
 ├── lke
 │   ├── main.tf
 │   ├── outputs.tf
-│   ├── provider.tf
+│   ├── providers.tf
 │   └── variables.tf
 ├── nodebalancer
 │   ├── main.tf
-│   ├── provider.tf
+│   ├── providers.tf
 │   └── variables.tf
 └── provisioners
     ├── main.tf
-    ├── provider.tf
+    ├── providers.tf
     └── variables.tf
 ```
 
@@ -614,16 +614,16 @@ terraform_modules_project/
 ├── modules
 │   ├── firewall
 │   │   ├── main.tf
-│   │   ├── provider.tf
+│   │   ├── providers.tf
 │   │   └── variables.tf
 │   ├── linodes
 │   │   ├── main.tf
 │   │   ├── outputs.tf
-│   │   ├── provider.tf
+│   │   ├── providers.tf
 │   │   └── variables.tf
 │   ├── lke
 │   │   ├── main.tf
-│   │   ├── provider.tf
+│   │   ├── providers.tf
 │   │   └── variables.tf
 │   ├── nodebalancer
 │   │   ├── main.tf
@@ -631,7 +631,7 @@ terraform_modules_project/
 │   │   └── variables.tf
 │   └── provisioners
 │       ├── main.tf
-│       ├── provider.tf
+│       ├── providers.tf
 │       └── variables.tf
 ├── nginx
 ├── providers.tf
@@ -639,7 +639,7 @@ terraform_modules_project/
 └── variables.tf
 ```
 
-Configure every `provider.tf` file the same.
+Configure every `providers.tf` file the same.
 ```
 terraform {
   required_providers {
@@ -703,7 +703,7 @@ resource "linode_instance" "web" {
 }
 ```
 
-Then let's define `variables.tf` with the variables this module needs as input values. If a default is not given, and no value is assigned to these variables via the root module, the user will be prompted for the value when running `terraform plan`.
+Then let's define `variables.tf` with the variables this module needs as input values. If a default is not given, and no value is assigned to these variables via the **root module**, the user will be prompted for the value when running `terraform plan`.
 
 ```
 # terraform_modules_project/modules/linodes/variables.tf 
@@ -732,7 +732,7 @@ output "linode_web_instances" {
 }
 ```
 
-We are now ready to **source** the `linodes` module into our root module. Note that we are assigning `root_passs`, `api_token`, and `authorized_keys` variables. That's because they were declared in the `./modules/linodes/variables.tf` file as inputs, but didn't contain a default value. There are however, some default values for these variables in the top-level `variables.tf`, so we have to assign them here.
+We are now ready to **source** the `linodes` module into our **root module**. Note that we are assigning `root_passs`, `api_token`, and `authorized_keys` variables. That's because they were declared in the `./modules/linodes/variables.tf` file as inputs, but didn't contain a default value. There are however, some default values for these variables in the top-level `variables.tf`, so we have to assign them here.
 ```
 # terraform_modules_project/main.tf
 
@@ -754,7 +754,7 @@ Run a `terraform plan` to ensure everything works as expected, and then `terrafo
 ![linodes-module-2.png](./images/linodes-module-2.png)
 
 ### Firewall Module
-Let's set up the `firewall` module next! Recall what was mentioned earlier about the `outputs.tf` of the `linodes` module, and how it makes the Linode instance information available to other modules. That information is available in an object we defined as `linode_web_instances`. To use it in our `firewall` module we'll assign it to a variable in the root module. Let's call it `firewall_linodes` to make it distinguishable from other variables and clear on what it's for. Add the following `module` block to the **root module**.
+Let's set up the `firewall` module next! Recall what was mentioned earlier about the `outputs.tf` of the `linodes` module, and how it makes the Linode instance information available to other modules. That information is available in an object we defined as `linode_web_instances`. To use it in our `firewall` module we'll assign it to a variable in the **root module**. Let's call it `firewall_linodes` to make it distinguishable from other variables and clear on what it's for. Add the following `module` block to the **root module**.
 ```
 module "firewall" {
     source = "./modules/firewall"
@@ -842,7 +842,7 @@ Run `terraform plan` to verify those Linode IDs will be attached, and then `terr
 ![firewall-module-2.png](./images/firewall-module-2.png)
 
 ### NodeBalancer Module
-Time to put these Linodes behind a NodeBalancer! Add another `module` block for it in the root module. Like with the `firewall` module, we need to pass information from the instances created in the `linodes` module, because the `nodebalancer` module needs to make configurations for those backends. We'll assign the `linode_web_instances` object, but to a distinguishable variable called `backend_linodes`. You also see that we're using the `amount` variable - the value of which gets assigned to [`count`](https://www.terraform.io/docs/language/meta-arguments/count.html). We have a default value of `3` assigned to `amount` in the top-level `variables.tf`, so let's assign it here along with the `linode_web_instances` object.
+Time to put these Linodes behind a NodeBalancer! Add another `module` block for it in the **root module**. Like with the `firewall` module, we need to pass information from the instances created in the `linodes` module, because the `nodebalancer` module needs to make configurations for those backends. We'll assign the `linode_web_instances` object, but to a distinguishable variable called `backend_linodes`. You also see that we're using the `amount` variable - the value of which gets assigned to [`count`](https://www.terraform.io/docs/language/meta-arguments/count.html). We have a default value of `3` assigned to `amount` in the top-level `variables.tf`, so let's assign it here along with the `linode_web_instances` object.
 ```
 module "nodebalancer" {
     source = "./modules/nodebalancer"
